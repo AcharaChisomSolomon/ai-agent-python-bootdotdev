@@ -19,4 +19,3 @@ def get_files_info(working_directory: str, directory: str = ".") -> str:
         is_dir    = os.path.isdir(target_dir + f"/{item}")
         output   += f"\n  - {item}: file_size={file_size} bytes, is_dir={is_dir}"
     return output
-
