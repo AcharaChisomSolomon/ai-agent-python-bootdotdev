@@ -2,14 +2,10 @@ import argparse
 import os
 import json
 
-from dotenv  import load_dotenv
-from openai  import OpenAI
-from prompts import system_prompt
-
-from functions.get_files_info   import schema_get_files_info
-from functions.get_file_content import schema_get_file_content
-from functions.write_file       import schema_write_file
-from functions.run_python_file  import schema_run_python_file
+from dotenv        import load_dotenv
+from openai        import OpenAI
+from prompts       import system_prompt
+from call_function import available_functions, call_function
 
 
 def main():
@@ -33,13 +29,6 @@ def main():
         {"role": "user", "content": args.user_prompt},
     ]
 
-    available_functions = [
-        schema_get_files_info,
-        schema_get_file_content,
-        schema_write_file,
-        schema_run_python_file
-    ]
-
     response = client.chat.completions.create(
         model="openrouter/free",
         messages=messages,
@@ -57,8 +46,13 @@ def main():
 
     if message.tool_calls != None:
         for tool_call in message.tool_calls:
-            function_args = json.loads(tool_call.function.arguments or "{}")
-            print(f"Calling function: {tool_call.function.name}({function_args})")
+            if tool_call.type != "function":
+                continue
+            result_message = call_function(tool_call, args.verbose)
+            if not result_message.get("content"):
+                raise RuntimeError(f"Empty function response for {tool_call.function.name}")
+            if args.verbose:
+                print(f"-> {result_message['content']}")
     else:
         print("Response:")
         print(message.content)
